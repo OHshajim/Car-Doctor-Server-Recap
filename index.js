@@ -38,17 +38,32 @@ async function run() {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
             const option = {
-                projection: { _id: 1, title: 1, price: 1, img: 1 }
+                projection: { _id: 1, title: 1, price: 1, img: 1, service_id: 1 }
             }
             const result = await servicesConnection.findOne(query);
             res.send(result);
         })
 
-        app.post('/bookings',async(req,res)=>{
-            const booking =req.body ;
+        app.get("/bookings", async (req, res) => {
+            let query = {};
+            if (req.query?.email) {
+                query = { email: req.query.email }
+            }
+            const result = await bookingConnection.find(query).toArray()
+            res.send(result)
+        })
+
+        app.post('/bookings', async (req, res) => {
+            const booking = req.body;
             const result = await bookingConnection.insertOne(booking)
             res.send(result)
 
+        })
+        app.delete('/bookings/:id',async(req,res)=>{
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await bookingConnection.deleteOne(query)
+            res.send(result)
         })
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
