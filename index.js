@@ -1,13 +1,19 @@
-const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const express = require("express");
 const cors = require('cors');
-require('dotenv').config()
+const jwt = require('jsonwebtoken');
+const cookieParse = require('cookie-parser')
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+require('dotenv').config();
 const app = express();
 const port = process.env.PORT || 5000;
 
 // middleWare 
-app.use(cors())
-app.use(express.json())
+app.use(cors({
+    origin: ['http://localhost:5173'],
+    credentials: true
+}));
+app.use(express.json());
+app.use(cookieParse())
 
 
 const uri = `mongodb+srv://${process.env.DB_NAME}:${process.env.DB_PASS}@cluster0.q9eobgc.mongodb.net/?retryWrites=true&w=majority`;
@@ -29,10 +35,26 @@ async function run() {
         const servicesConnection = client.db('CarDoctor').collection('services');
         const bookingConnection = client.db('CarDoctor').collection('bookings');
 
+        // auth related api 
+        app.post('/jwt', async (req, res) => {
+            const user = req.body
+            console.log(user);
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET,
+                { expiresIn: '1h' })
+            res.cookie('token', token, {
+                httpOnly: true,
+                secure: false,
+                // sameSite: 'none'
+            })
+                .send('success')
+        });
+
+        // services related api
+
         app.get('/services', async (req, res) => {
             const result = await servicesConnection.find().toArray();
             res.send(result)
-        })
+        });
 
         app.get('/services/:id', async (req, res) => {
             const id = req.params.id;
@@ -40,9 +62,9 @@ async function run() {
             const option = {
                 projection: { _id: 1, title: 1, price: 1, img: 1, service_id: 1 }
             }
-            const result = await servicesConnection.findOne(query);
+            const result = await servicesConnection.findOne(query, option);
             res.send(result);
-        })
+        });
 
         app.patch('/bookings/:id', async (req, res) => {
             const updatedBooking = req.body;
@@ -53,32 +75,33 @@ async function run() {
                     status: updatedBooking.status
                 },
             };
-            const result = await bookingConnection.updateOne(filter, updateDoc)
-            res.send(result)
-        })
-
+            const result = await bookingConnection.updateOne(filter, updateDoc);
+            res.send(result);
+        });
 
         app.get("/bookings", async (req, res) => {
             let query = {};
+            console.log("token", req.cookies);
             if (req.query?.email) {
                 query = { email: req.query.email }
             }
             const result = await bookingConnection.find(query).toArray()
             res.send(result)
-        })
+        });
 
         app.post('/bookings', async (req, res) => {
             const booking = req.body;
             const result = await bookingConnection.insertOne(booking)
             res.send(result)
+        });
 
-        })
         app.delete('/bookings/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
             const result = await bookingConnection.deleteOne(query)
             res.send(result)
-        })
+        });
+
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
