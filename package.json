@@ -1,7 +1,6 @@
 {
   "name": "car-doctor-server",
   "version": "1.0.0",
-  "description": "",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
@@ -17,5 +16,6 @@
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.5.0"
-  }
+  },
+  "description": ""
 }
